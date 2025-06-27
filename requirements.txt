@@ -1,0 +1,7 @@
+openai-whisper @ git+https://github.com/openai/whisper.git
+psutil
+nvidia-ml-py3
+easyocr>=1.7.0
+PyMuPDF>=1.22.0
+pillow>=10.0.0
+watchdog>=3.0.0

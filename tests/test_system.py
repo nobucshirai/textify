@@ -72,60 +72,60 @@ class TestSystem(unittest.TestCase):
 
     @patch('textify.system.pynvml')
     @patch('textify.system.psutil')
-    @patch('textify.system.time.time')
-    def test_monitor_resources(self, mock_time, mock_psutil, mock_pynvml):
+    def test_monitor_resources(self, mock_psutil, mock_pynvml):
         """Test resource monitoring functionality"""
         # Setup logging capture
         log_stream = io.StringIO()
         handler = logging.StreamHandler(log_stream)
         logger = logging.getLogger()
+        original_level = logger.level
         logger.setLevel(logging.INFO)  # Ensure INFO logs are captured
         logger.addHandler(handler)
         
-        # Configure mocks
-        time_sequence = [0, 5, 10]
-        mock_time.side_effect = time_sequence
-        
-        mock_psutil.cpu_percent.return_value = 50
-        
-        mock_handle = MagicMock()
-        mock_pynvml.nvmlDeviceGetHandleByIndex.return_value = mock_handle
-        
-        util_rates = MagicMock()
-        util_rates.gpu = 30
-        util_rates.memory = 15
-        mock_pynvml.nvmlDeviceGetUtilizationRates.return_value = util_rates
-        
-        mock_pynvml.nvmlDeviceGetPowerUsage.return_value = 40000  # 40W
-        
-        # Set global flags
-        import textify.system as system_module
-        system_module.gpu_available = True
-        system_module.pynvml_available = True
-        system_module.psutil_available = True
-        
-        # Create a stop event
-        stop_event = threading.Event()
-        
-        # Call function in a thread since it runs until stop_event is set
-        def run_monitor():
-            monitor_resources(stop_event, 1)
-        
-        monitor_thread = threading.Thread(target=run_monitor)
-        monitor_thread.daemon = True
-        monitor_thread.start()
-        
-        # Let it run for a moment
-        time.sleep(0.1)
-        stop_event.set()
-        monitor_thread.join()
-        
-        # Check log output
-        log_output = log_stream.getvalue()
-        self.assertIn("Resource usage statistics", log_output)
-        
-        # Clean up
-        logger.removeHandler(handler)
+        try:
+            # Configure mocks
+            mock_psutil.cpu_percent.return_value = 50
+            
+            mock_handle = MagicMock()
+            mock_pynvml.nvmlDeviceGetHandleByIndex.return_value = mock_handle
+            
+            util_rates = MagicMock()
+            util_rates.gpu = 30
+            util_rates.memory = 15
+            mock_pynvml.nvmlDeviceGetUtilizationRates.return_value = util_rates
+            
+            mock_pynvml.nvmlDeviceGetPowerUsage.return_value = 40000  # 40W
+            
+            # Set global flags
+            import textify.system as system_module
+            system_module.gpu_available = True
+            system_module.pynvml_available = True
+            system_module.psutil_available = True
+            
+            # Create a stop event
+            stop_event = threading.Event()
+            
+            # Call function in a thread since it runs until stop_event is set
+            def run_monitor():
+                monitor_resources(stop_event, 0.1)  # Use shorter interval for faster test
+            
+            monitor_thread = threading.Thread(target=run_monitor)
+            monitor_thread.daemon = True
+            monitor_thread.start()
+            
+            # Let it run for a moment
+            time.sleep(0.2)
+            stop_event.set()
+            monitor_thread.join(timeout=1.0)  # Add timeout to prevent hanging
+            
+            # Check log output
+            log_output = log_stream.getvalue()
+            self.assertIn("Resource usage statistics", log_output)
+            
+        finally:
+            # Clean up
+            logger.removeHandler(handler)
+            logger.setLevel(original_level)
 
 
 if __name__ == '__main__':

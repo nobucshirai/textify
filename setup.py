@@ -7,7 +7,7 @@ with open("README.md", encoding="utf-8") as fh:
 
 setup(
     name="textify",
-    version="0.1.0",
+    version="0.1.1",
     author="Nobu C. Shirai",
     author_email="5637009+nobucshirai@users.noreply.github.com",
     description="Batch processing audio, video, and document files with Whisper and EasyOCR",

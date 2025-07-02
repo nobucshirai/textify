@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2025-07-02
+
+### Changed
+
+* Updated processing time estimation coefficients for NVIDIA RTX 4070 and RTX 4060 Ti GPUs in `textify/media.py`.
+* Simplified resource monitoring test in `tests/test_system.py` to use a shorter sampling interval (`0.1s`) and added a timeout to `thread.join()` to prevent hanging.
+* Adjusted expectations in `tests/test_media.py` to reflect the new coefficients (`0.089 * duration + 15` for RTX 4070 and `0.134 * duration + 10.8` for RTX 4060 Ti).
+
 ## \[0.1.0] - 2025-06-27
 
 ### Added

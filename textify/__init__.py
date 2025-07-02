@@ -2,7 +2,7 @@
 Textify - Batch processing audio, video, and document files with Whisper and EasyOCR.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 # Import key functions to make them available at package level
 # Note: We import only essential functions to avoid circular imports

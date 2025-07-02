@@ -72,7 +72,7 @@ class TestMedia(unittest.TestCase):
             mock_pynvml.nvmlDeviceGetName.return_value = "NVIDIA GeForce RTX 4070"
             
             result = estimate_processing_time(300.0)
-            self.assertAlmostEqual(result, 0.1894 * 300.0 + 120.2099, places=4)
+            self.assertAlmostEqual(result, 0.089 * 300.0 + 15, places=4)
         
         # Test with RTX 4060 Ti
         with patch('textify.system.pynvml') as mock_pynvml:
@@ -81,7 +81,7 @@ class TestMedia(unittest.TestCase):
             mock_pynvml.nvmlDeviceGetName.return_value = "NVIDIA GeForce RTX 4060 Ti"
             
             result = estimate_processing_time(300.0)
-            self.assertAlmostEqual(result, 0.3162 * 300.0 + 40.9230, places=4)
+            self.assertAlmostEqual(result, 0.134 * 300.0 + 10.8, places=4)
         
         # Test with unknown GPU model
         with patch('textify.system.pynvml') as mock_pynvml:

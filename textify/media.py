@@ -48,9 +48,9 @@ def estimate_processing_time(duration: float) -> float:
         if isinstance(name, bytes):
             name = name.decode()
         if "RTX 4070" in name:
-            return 0.1894 * duration + 120.2099
+            return 0.089 * duration + 15
         if "RTX 4060 Ti" in name:
-            return 0.3162 * duration + 40.9230
+            return 0.134 * duration + 10.8
     except Exception:
         pass
     return 0.0

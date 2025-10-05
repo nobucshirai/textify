@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] - 2025-10-05
+
+### Fixed
+
+* Build transcript from Whisper `segments` when present, joining non-empty trimmed pieces with newlines
+* Fall back to `out["text"]` (or empty string) when `segments` is missing to avoid KeyErrors and inconsistent outputs
+
 ## [0.1.1] - 2025-07-02
 
 ### Changed

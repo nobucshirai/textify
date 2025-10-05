@@ -129,7 +129,16 @@ def process_audio_video_files(
         try:
             fp16 = (device == "cuda" and system.cuda_available)
             out = model.transcribe(fp, language=language, fp16=fp16)
-            text = out["text"]
+            if isinstance(out, dict) and isinstance(out.get("segments"), list):
+                lines = []
+                for seg in out["segments"]:
+                    t = (seg.get("text") or "").strip()
+                    if t:
+                        lines.append(t)
+                text = "\n".join(lines)
+            else:
+                text = out.get("text", "") if isinstance(out, dict) else ""
+
             with open(dump, "a", encoding="utf-8") as f:
                 f.write(text)
             with open(txt, "w", encoding="utf-8") as f:

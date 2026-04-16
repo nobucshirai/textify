@@ -174,6 +174,7 @@ def main() -> None:
                 args.gpu_threshold,
                 args.device,
                 args.ignore_gpu_threshold,
+                args.whisper_output_formats,
             )
 
         # --- documents / images
@@ -265,6 +266,7 @@ def main() -> None:
                             args.gpu_threshold,
                             args.device,
                             args.ignore_gpu_threshold,
+                            args.whisper_output_formats,
                         )
                     if docs:
                         process_document_files(docs)

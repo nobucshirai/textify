@@ -158,6 +158,7 @@ from textify.system import initialize_system_checks
 * `--model`: Whisper model name (default: `large`).
 * `--language`: Transcription language (default: `Japanese`).
 * `--device`: Processing device, `cuda` or `cpu` (default: `cuda`; automatically falls back to `cpu` if CUDA is unavailable).
+* `--whisper-output-formats`: Comma-separated additional Whisper output formats for audio/video files. `txt` is always written separately, and you can add `vtt`, `srt`, `tsv`, `json`, or `all`.
 * `-w`, `--watch`: Watch `--input-dir` for new files and process them using `watchdog`.
 
 **Note**: You must specify either `--input-dir` or provide files as arguments, but not both.
@@ -185,6 +186,7 @@ For each processed file, textify creates:
 
 * A text transcript file with the naming pattern `filename_extension.txt` (e.g., `lecture_mp3.txt`, `document_pdf.txt`)
 * A dump file with the naming pattern `filename_extension_dump.txt` containing processing details and the full output
+* For audio/video files, optional additional Whisper outputs such as `filename_extension.vtt`, `filename_extension.srt`, `filename_extension.tsv`, and `filename_extension.json` when `--whisper-output-formats` is used
 
 ## Examples
 
@@ -201,6 +203,14 @@ For each processed file, textify creates:
     audio1.mp3 video1.mp4 document.pdf \
     --language English \
     --device cpu
+  ```
+
+* **Create additional subtitle and JSON outputs for media files**:
+
+  ```bash
+  textify \
+    audio1.mp3 video1.mp4 \
+    --whisper-output-formats vtt,json
   ```
 
 * **Custom log directory and lower sampling interval (directory mode)**:

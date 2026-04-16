@@ -7,6 +7,45 @@ This module handles argument parsing and CLI configuration.
 import argparse
 
 
+WHISPER_EXTRA_OUTPUT_FORMATS = ["vtt", "srt", "tsv", "json"]
+
+
+def parse_whisper_output_formats(value: str) -> list[str]:
+    """
+    Parse a comma-separated list of additional Whisper output formats.
+
+    The plain text transcript is always written separately, so this option only
+    controls extra output files such as VTT or JSON.
+    """
+    if value is None:
+        return []
+
+    raw_formats = [item.strip().lower() for item in value.split(",") if item.strip()]
+    if not raw_formats:
+        return []
+
+    invalid_formats = [
+        item for item in raw_formats
+        if item not in WHISPER_EXTRA_OUTPUT_FORMATS and item != "all"
+    ]
+    if invalid_formats:
+        valid = ", ".join(["all", *WHISPER_EXTRA_OUTPUT_FORMATS])
+        raise argparse.ArgumentTypeError(
+            f"Invalid Whisper output format(s): {', '.join(invalid_formats)}. "
+            f"Valid values are: {valid}"
+        )
+
+    if "all" in raw_formats:
+        return WHISPER_EXTRA_OUTPUT_FORMATS.copy()
+
+    deduped_formats = []
+    for item in raw_formats:
+        if item not in deduped_formats:
+            deduped_formats.append(item)
+
+    return deduped_formats
+
+
 def parse_arguments() -> argparse.Namespace:
     """
     Parses command-line arguments.
@@ -34,6 +73,16 @@ def parse_arguments() -> argparse.Namespace:
                         help='Language to use for transcription (e.g., Japanese, English)')
     parser.add_argument('--device', type=str, default='cuda',
                         help='Device to use for processing (cuda or cpu)')
+    parser.add_argument(
+        '--whisper-output-formats',
+        type=parse_whisper_output_formats,
+        default=[],
+        help=(
+            'Comma-separated additional Whisper output formats to write for '
+            'audio/video files. txt is always written separately. '
+            'Supported values: vtt,srt,tsv,json,all'
+        ),
+    )
     parser.add_argument('--verbose', '-v', action='store_true',
                         help='Enable verbose logging output')
     parser.add_argument('-w', '--watch', dest='watch', action='store_true',

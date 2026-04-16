@@ -4,6 +4,7 @@ import datetime
 import os
 import sys
 import tempfile
+import types
 
 # Add the parent directory to the path so we can import textify
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -12,7 +13,8 @@ from textify.media import (
     get_media_duration, 
     estimate_processing_time, 
     load_whisper_model_with_warning_suppression,
-    process_audio_video_files
+    process_audio_video_files,
+    write_additional_whisper_outputs,
 )
 
 import textify.system as sysmod
@@ -161,7 +163,7 @@ class TestMedia(unittest.TestCase):
                 language="English",
                 gpu_threshold=20,
                 device="cuda",
-                ignore_gpu_threshold=False
+                ignore_gpu_threshold=False,
             )
             
             # Verify model was called for each file
@@ -175,11 +177,92 @@ class TestMedia(unittest.TestCase):
                 language="English",
                 gpu_threshold=20,
                 device="cuda",
-                ignore_gpu_threshold=False
+                ignore_gpu_threshold=False,
             )
             
             # Should log that no files to process
             mock_logging.info.assert_called_with("No audio/video files to process.")
+
+    def test_process_audio_video_files_writes_additional_outputs(self):
+        """Additional Whisper outputs should be generated when requested."""
+        test_files = ["/path/to/audio.mp3"]
+        mock_model = MagicMock()
+
+        sysmod.ffprobe_available = True
+        sysmod.gpu_available = False
+        sysmod.pynvml_available = False
+        sysmod.cuda_available = True
+
+        with patch('textify.media.get_media_duration', return_value=120.0), \
+             patch('builtins.open', mock_open()), \
+             patch('textify.media.time.time', return_value=1000.0), \
+             patch('textify.media.write_additional_whisper_outputs') as mock_write_extra:
+
+            mock_model.transcribe.return_value = {
+                "text": "Test transcription",
+                "segments": [
+                    {"start": 0.0, "end": 1.0, "text": "Test transcription"}
+                ],
+            }
+
+            process_audio_video_files(
+                files=test_files,
+                model=mock_model,
+                language="English",
+                gpu_threshold=20,
+                device="cuda",
+                ignore_gpu_threshold=False,
+                whisper_output_formats=["vtt", "json"],
+            )
+
+            mock_write_extra.assert_called_once_with(
+                mock_model.transcribe.return_value,
+                "/path/to/audio.mp3",
+                ["vtt", "json"],
+            )
+
+    def test_write_additional_whisper_outputs(self):
+        """Additional Whisper outputs should follow textify naming."""
+        result = {
+            "segments": [
+                {"start": 0.0, "end": 1.0, "text": "Hello"},
+            ]
+        }
+
+        writer_calls = []
+
+        class FakeWriter:
+            def __init__(self, output_dir):
+                self.output_dir = output_dir
+
+            def write_result(self, result, file, options=None, **kwargs):
+                writer_calls.append((self.output_dir, file.name, result))
+
+        fake_utils = types.ModuleType("whisper.utils")
+        fake_utils.WriteVTT = FakeWriter
+        fake_utils.WriteSRT = FakeWriter
+        fake_utils.WriteTSV = FakeWriter
+        fake_utils.WriteJSON = FakeWriter
+
+        fake_whisper = types.ModuleType("whisper")
+        fake_whisper.utils = fake_utils
+
+        with patch.dict(
+            'sys.modules',
+            {'whisper': fake_whisper, 'whisper.utils': fake_utils},
+        ), patch('builtins.open', mock_open()) as mocked_open:
+            write_additional_whisper_outputs(
+                result,
+                "/path/to/audio.mp3",
+                ["vtt", "json"],
+            )
+
+        opened_paths = [call.args[0] for call in mocked_open.call_args_list]
+        self.assertEqual(
+            opened_paths,
+            ["/path/to/audio_mp3.vtt", "/path/to/audio_mp3.json"],
+        )
+        self.assertEqual(len(writer_calls), 2)
 
 
 if __name__ == '__main__':

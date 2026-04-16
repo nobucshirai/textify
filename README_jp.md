@@ -158,6 +158,7 @@ from textify.system import initialize_system_checks
 * `--model`：Whisper モデル名（デフォルト：`large`）
 * `--language`：文字起こし言語（デフォルト：`Japanese`）
 * `--device`：処理デバイス（`cuda` または `cpu`）（デフォルト：`cuda`。CUDA が利用できない場合は自動的に `cpu` を使用）
+* `--whisper-output-formats`：音声・動画ファイル向けの追加 Whisper 出力形式をカンマ区切りで指定します。`txt` は常に別途出力され、`vtt`、`srt`、`tsv`、`json`、`all` を追加指定できます
 * `-w`, `--watch`：`--input-dir` を監視し、新規ファイルを検出次第処理します（watchdog 使用）。
 
 **注意**：`--input-dir` またはファイル引数のいずれかを指定する必要がありますが、両方を同時に指定することはできません。
@@ -185,6 +186,7 @@ from textify.system import initialize_system_checks
 
 * テキスト抽出ファイル：`ファイル名_拡張子.txt`の形式（例：`lecture_mp3.txt`、`document_pdf.txt`）
 * ダンプファイル：`ファイル名_拡張子_dump.txt`の形式で、処理の詳細情報と完全な出力を含む
+* 音声・動画ファイルでは、`--whisper-output-formats` を指定すると `ファイル名_拡張子.vtt`、`ファイル名_拡張子.srt`、`ファイル名_拡張子.tsv`、`ファイル名_拡張子.json` などの追加出力も生成可能
 
 ## 使用例
 
@@ -201,6 +203,14 @@ from textify.system import initialize_system_checks
     audio1.mp3 video1.mp4 document.pdf \
     --language English \
     --device cpu
+  ```
+
+* **音声・動画ファイルで字幕ファイルや JSON も同時に出力**：
+
+  ```bash
+  textify \
+    audio1.mp3 video1.mp4 \
+    --whisper-output-formats vtt,json
   ```
 
 * **カスタムログディレクトリを指定する場合（ディレクトリモード）**：

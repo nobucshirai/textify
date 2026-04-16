@@ -7,7 +7,7 @@ import argparse
 # Add the parent directory to the path so we can import textify
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from textify.cli import parse_arguments
+from textify.cli import parse_arguments, parse_whisper_output_formats
 
 
 class TestCLI(unittest.TestCase):
@@ -56,6 +56,7 @@ class TestCLI(unittest.TestCase):
             self.assertFalse(args.ignore_gpu_threshold)
             self.assertFalse(args.verbose)
             self.assertEqual(args.log_file, 'batch_process.log')
+            self.assertEqual(args.whisper_output_formats, [])
             self.assertFalse(args.watch)
 
     def test_parse_arguments_custom_values(self):
@@ -66,6 +67,7 @@ class TestCLI(unittest.TestCase):
             '--model', 'tiny',
             '--language', 'English',
             '--device', 'cpu',
+            '--whisper-output-formats', 'vtt,srt',
             '--gpu-threshold', '50',
             '--monitoring-interval', '10',
             '--ignore-gpu-threshold',
@@ -79,12 +81,28 @@ class TestCLI(unittest.TestCase):
             self.assertEqual(args.model, 'tiny')
             self.assertEqual(args.language, 'English')
             self.assertEqual(args.device, 'cpu')
+            self.assertEqual(args.whisper_output_formats, ['vtt', 'srt'])
             self.assertEqual(args.gpu_threshold, 50)
             self.assertEqual(args.monitoring_interval, 10)
             self.assertTrue(args.ignore_gpu_threshold)
             self.assertTrue(args.verbose)
             self.assertEqual(args.log_file, 'test.log')
             self.assertTrue(args.watch)
+
+    def test_parse_whisper_output_formats(self):
+        """Test parsing of additional Whisper output formats"""
+        self.assertEqual(parse_whisper_output_formats('vtt,srt'), ['vtt', 'srt'])
+        self.assertEqual(
+            parse_whisper_output_formats('vtt, srt, vtt'),
+            ['vtt', 'srt']
+        )
+        self.assertEqual(
+            parse_whisper_output_formats('all'),
+            ['vtt', 'srt', 'tsv', 'json']
+        )
+
+        with self.assertRaises(argparse.ArgumentTypeError):
+            parse_whisper_output_formats('docx')
 
 
 if __name__ == '__main__':

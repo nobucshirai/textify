@@ -8,12 +8,15 @@ import os
 import time
 import datetime
 import warnings
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Iterable
 
 from . import system                # ← live module, no frozen flags
 
 if TYPE_CHECKING:                   # for type‑checkers only
     import whisper
+
+
+WHISPER_EXTRA_OUTPUT_FORMATS = ("vtt", "srt", "tsv", "json")
 
 
 # --------------------------------------------------------------------------- #
@@ -56,6 +59,54 @@ def estimate_processing_time(duration: float) -> float:
     return 0.0
 
 
+def _get_media_output_stem(path: str) -> str:
+    base = os.path.splitext(os.path.basename(path))[0]
+    ext = os.path.splitext(path)[1].lower().lstrip(".")
+    return os.path.join(os.path.dirname(path), f"{base}_{ext}")
+
+
+def write_additional_whisper_outputs(
+    result: dict,
+    source_path: str,
+    output_formats: Iterable[str],
+) -> None:
+    requested_formats = [fmt for fmt in output_formats if fmt in WHISPER_EXTRA_OUTPUT_FORMATS]
+    if not requested_formats:
+        return
+
+    if not isinstance(result, dict) or "segments" not in result:
+        logging.warning(
+            "Skipping additional Whisper outputs for %s because the result "
+            "does not contain segments.",
+            source_path,
+        )
+        return
+
+    try:
+        from whisper import utils as whisper_utils
+    except ImportError as exc:
+        logging.error(
+            "Additional Whisper output formats were requested but whisper.utils "
+            "could not be imported: %s",
+            exc,
+        )
+        return
+
+    writer_classes = {
+        "vtt": whisper_utils.WriteVTT,
+        "srt": whisper_utils.WriteSRT,
+        "tsv": whisper_utils.WriteTSV,
+        "json": whisper_utils.WriteJSON,
+    }
+
+    output_stem = _get_media_output_stem(source_path)
+    for output_format in requested_formats:
+        writer = writer_classes[output_format](os.path.dirname(source_path))
+        output_path = f"{output_stem}.{output_format}"
+        with open(output_path, "w", encoding="utf-8") as f:
+            writer.write_result(result, file=f)
+
+
 # --------------------------------------------------------------------------- #
 # Whisper model
 # --------------------------------------------------------------------------- #
@@ -92,6 +143,7 @@ def process_audio_video_files(
     gpu_threshold: int,
     device: str,
     ignore_gpu_threshold: bool,
+    whisper_output_formats: Iterable[str] = (),
 ):
     if not files:
         logging.info("No audio/video files to process.")
@@ -107,10 +159,9 @@ def process_audio_video_files(
         gpu_model = "Unknown"
 
     for fp in files:
-        base = os.path.splitext(os.path.basename(fp))[0]
-        ext  = os.path.splitext(fp)[1].lower().lstrip(".")
-        txt  = os.path.join(os.path.dirname(fp), f"{base}_{ext}.txt")
-        dump = os.path.join(os.path.dirname(fp), f"{base}_{ext}_dump.txt")
+        output_stem = _get_media_output_stem(fp)
+        txt = f"{output_stem}.txt"
+        dump = f"{output_stem}_dump.txt"
 
         duration = get_media_duration(fp) if system.ffprobe_available else 0.0
         est_time = estimate_processing_time(duration)
@@ -143,6 +194,7 @@ def process_audio_video_files(
                 f.write(text)
             with open(txt, "w", encoding="utf-8") as f:
                 f.write(text)
+            write_additional_whisper_outputs(out, fp, whisper_output_formats)
         except Exception as e:
             logging.error(f"Failed on {fp}: {e}")
             with open(dump, "a", encoding="utf-8") as f:
